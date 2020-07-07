@@ -1,0 +1,7 @@
+#!/bin/sh
+idl<<EOF
+.compile snfl_airtemp_stats_batch
+RESOLVE_ALL
+SAVE, /ROUTINES, FILE='snfl_airtemp_stats_batch.sav'
+exit
+EOF

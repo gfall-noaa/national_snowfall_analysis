@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# This script is a "here document" for building a run-time version of an IDL
+# program.
+
+export IDL_PATH="<IDL_DEFAULT>:${PWD}/../idl_lib"
+PROGRAM=${0%.bld}
+/opt/rsi/idl/bin/idl << DONE
+.compile $PROGRAM
+.compile idlgrcolorbar__define.pro
+.compile spherical_semivariogram
+.compile lmfunct
+if (!Error_state.code ne 0) then EXIT, STATUS = 1
+RESOLVE_ALL
+if (!Error_state.code ne 0) then EXIT, STATUS = 1
+SAVE, /ROUTINES, FILE='$PROGRAM.sav'
+if (!Error_state.code ne 0) then EXIT, STATUS = 1
+PRINT, ' '
+PRINT, 'Built run-time IDL program $PROGRAM.sav'
+PRINT, ' '
+exit
+DONE
+

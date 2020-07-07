@@ -1,0 +1,7 @@
+FUNCTION STRCRA, arg
+
+; Shortcut for STRCOMPRESS(arg, /REMOVE_ALL)
+
+  RETURN, STRCOMPRESS(arg, /REMOVE_ALL)
+
+end

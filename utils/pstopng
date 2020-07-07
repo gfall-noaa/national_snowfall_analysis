@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# Convert PostScript image to JPEG.
+
+# Remove the extension.
+IMAGE=${1%.*}
+
+# Get the bounding box.
+
+# 1275x1650 0.77272727
+# bbox 0 22 505 338 505x316 1
+
+# foo.ps -
+# bbox 0 22 505 338
+# at 72dpi conversion to png gives 612x792 image
+# cutout of actual image is 504x315
+# If I do a 505x316 cutout...
+
+# 8.5 x 11 is 1.2941176
+# image from png16m device is 612x792 which is 1.2941176
+
+#GS="gs -q -sDEVICE=bbox -dSAFER -dNOPAUSE -I. -- $1"
+#$GS<<EOF
+#quit
+#EOF
+# "-r600 -dDownScaleFactor=4" is effectively 150 dpi
+# but -dDownScaleFactor does not work in ghostscript 8.70
+#GS="gs -q -sDEVICE=png16m -dSAFER -dNOPAUSE -r600 -dDownScaleFactor=4 \
+#    -sOutputFile=$IMAGE.png -I. -- $1"
+GS="gs -q -sDEVICE=png16m -dSAFER -dNOPAUSE -r600 \
+    -sOutputFile=$IMAGE.png -I. -- $1"
+$GS<<EOF
+quit
+EOF
+mogrify -scale "25%x25%" ${IMAGE}.png
+#mogrify -scale "50%x50%" ${IMAGE}.png
+
