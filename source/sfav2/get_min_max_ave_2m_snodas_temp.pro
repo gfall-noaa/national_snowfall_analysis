@@ -839,7 +839,7 @@ PRO GET_MIN_MAX_AVE_2M_SNODAS_TEMP, $
 
 ;         Read data.
 
-          NCDF_VARGET, id, 'Data', grid
+          NCDF_VARGET, id, 'Data', grid  
 ;GFKS 20170606 vv
 ;USR_MSG, 'Read data (1st hour) from "' + ncFilePath + '"'
 ;GFKS 20170606 ^^
@@ -858,7 +858,7 @@ PRO GET_MIN_MAX_AVE_2M_SNODAS_TEMP, $
           if (gridSize[2] ne subgridRows) then STOP ; PROGRAMMING ERROR
 
           ind = WHERE(grid eq fillValue, count)
-          grid = grid * scaleFactor + addOffset
+          grid = FLOAT(grid * scaleFactor + addOffset)
           if (count gt 0) then grid[ind] = Ndv
 
           ntg = grid ; minimum
@@ -1017,7 +1017,7 @@ PRO GET_MIN_MAX_AVE_2M_SNODAS_TEMP, $
           if (gridSize[2] ne subgridRows) then STOP ; PROGRAMMING ERROR
 
           ind = WHERE(grid eq fillValue, count)
-          grid = grid * scaleFactor + addOffset
+          grid = FLOAT(grid * scaleFactor + addOffset)
           if (count gt 0) then grid[ind] = Ndv
 
           ind = WHERE((atg eq Ndv) or (grid eq Ndv), count)
