@@ -297,13 +297,17 @@ PRO GET_STAGE4_HRAP_QPE, $
   GRIBDir_subdirs = St4Dir + '/' + accumEndDate_YYYY + '/' + $
                     accumEndDate_YYYYMMDD
 
-  GRIBFile_noExt = 'ST4.' + accumEndDate_YYYYMMDDHH + '.' + $
-                   STRING(DurationHours, FORMAT = '(I2.2)') + 'h'
-
   GRIBDir = ''
   GRIBFile = ''
   file = !NULL
   count = 0
+  GRIB_version = !NULL
+
+;+
+; Look for a gzipped GRIB 1 file in a YYYY/YYYYMMDD subdirectory.
+;-
+  GRIBFile_noExt = 'ST4.' + accumEndDate_YYYYMMDDHH + '.' + $
+                   STRING(DurationHours, FORMAT = '(I2.2)') + 'h'
 
   if FILE_TEST(GRIBDir_subdirs, /DIRECTORY) then begin
 
@@ -327,11 +331,15 @@ PRO GET_STAGE4_HRAP_QPE, $
               endfor
           endif
           GRIBFile = file[0]
+          GRIB_version = 1
       endif
 
   endif
 
-  if (FILE_TEST(GRIBDir_noSubdirs) and $
+;+
+; Look for a gzipped GRIB 1 file in a top-level directory.
+;-
+  if (FILE_TEST(GRIBDir_noSubdirs, /DIRECTORY) and $
       ((GRIBDir eq '') or (GRIBFile eq ''))) then begin
 
       if (count ne 0) then STOP ; PROGRAMMING ERROR
@@ -357,89 +365,94 @@ PRO GET_STAGE4_HRAP_QPE, $
               endfor
           endif
           GRIBFile = file[0]
+          GRIB_version = 1
       endif
 
   endif
 
-  ;; GRIBDir = St4Dir + '/' + accumEndDate_YYYY + '/' + $
-  ;;           accumEndDate_YYYYMMDD
-  ;; GRIBFile = 'ST4.' + accumEndDate_YYYYMMDDHH + '.' + $
-  ;;            STRING(DurationHours, FORMAT = '(I2.2)') + 'h'
-;  GRIBFilePath = GRIBDir + '/' + GRIBFile
+  if (((GRIBDir eq '') or (GRIBFile eq '')) and $
+      (FIX(accumEndDate_YYYY) ge 2020) and $
+      (FIX(accumEndDate_MM) ge 7)) then begin
+;+
+;     No GRIB 1 file found. Try GRIB 2.
+;-
+      GRIBFile_expected = 'st4_conus.' + accumEndDate_YYYYMMDDHH + '.' + $
+                          STRING(DurationHours, FORMAT = '(I2.2)') + 'h.grb2'
 
 ;+
-; DECODE_GRIB1_RECORD looks for the following extensions:
-; ".gz", "-gz", ".z", "-z", "_z", and ".Z".
+;     Look for a GRIB 2 file in a YYYY/YYYYMMDD subdirectory.
 ;-
-  ;; file = !NULL
-  ;; count = 0
-  ;; if FILE_TEST(GRIBDir + '/' + GRIBFile + '.gz') then begin
-  ;;     file = [file, GRIBFile + '.gz']
-  ;;     count = count + 1
-  ;; endif
-  ;; if FILE_TEST(GRIBDir + '/' + GRIBFile + '.Z') then begin
-  ;;     file = [file, GRIBFile + '.Z']
-  ;;     count = count + 1
-  ;; endif
+      if (FILE_TEST(GRIBDir_subdirs, /DIRECTORY)) then begin
 
-;  file = FILE_SEARCH(GRIBDir + '/' + GRIBFile + '*', COUNT = count)
+          if FILE_TEST(GRIBDir_subdirs + '/' + GRIBFile_expected) then begin
+              GRIBDir = GRIBDir_subdirs
+              GRIBFile = GRIBFile_expected
+              GRIB_version = 2
+          endif
 
-  ;; if (count eq 0) then begin
-  ;;     ERR_MSG, 'No Stage IV files matching "' + $
-  ;;              GRIBDir + '/' + GRIBFile + '[.Z,.gz]" available.'
-  ;;     RETURN
-  ;; endif
+      endif
 
-;  ext = STREGEX(file, '\.gz$|-gz$|\.z$|-z$|_z$|\.Z$', /EXTRACT)
+      if (FILE_TEST(GRIBDir_noSubdirs, /DIRECTORY) and $
+          ((GRIBDir eq '') or (GRIBFile eq ''))) then begin
 
-;  ind = WHERE(ext ne '', count)
+;+
+;         Look for a GRIB 2 file in a top-level directory.
+;-
+          if FILE_TEST(GRIBDir_noSubdirs + '/' + GRIBFile_expected) then begin
+              GRIBDir = GRIBDir_noSubdirs
+              GRIBFile = GRIBFile_expected
+              GRIB_version = 2
+          endif
 
-;  if (count eq 0) then begin
-;      ERR_MSG, 'No matches for ' + $
-;               '".gz", "-gz", ".z", "-z", "_z", or ".Z" ' + $
-;               'among matches for "' + $
-;               GRIBDir + '/' + GRIBFile + '*" wildcard.'
-;      RETURN
-;  endif
+      endif
 
-;;   if (count gt 1) then begin
-;;       ERR_MSG, 'WARNING: reading ' + $
-;;                GRIBDir + '/' + file[0] + ';'
-;; ;               GRIBDir + '/' + GRIBFile + ext[ind[0]] + ';'
-;;       for fc = 1, count - 1 do begin
-;;           ERR_MSG, 'ignoring ' + $
-;;                    GRIBDir + '/' + file[fc]
-;;       endfor
-;;   endif
-
-;  GRIBFile = GRIBFile + ext[ind[0]]
-;  GRIBFilePath = GRIBFilePath + ext[ind[0]]
-  ;; GRIBFile = file[0]
+  endif
 
   if ((GRIBDir eq '') or (GRIBFile eq '')) then begin
-      if KEYWORD_SET(Verbose) then $
-          ERR_MSG, 'No files matching "' + GRIBFile_noExt + '[.gz,.Z]" found ' + $
-                   'in either ' + GRIBDir_subdirs + ' or ' + $
-                   GRIBDir_noSubdirs
+      if KEYWORD_SET(Verbose) then begin
+          msg = 'No GRIB files matching "' + GRIBFile_noExt + '[.gz,.Z]"'
+          if ((FIX(accumEndDate_YYYY) ge 2020) and $
+              (FIX(accumEndDate_MM) ge 7)) then $
+              msg = msg + ' or "' + GRIBFile_expected + '"'
+          msg = msg + ' found in either ' + GRIBDir_subdirs + ' or ' + $
+                GRIBDir_noSubdirs
+          ERR_MSG, msg
+      endif
       RETURN
   endif
 
   GRIBFilePath = GRIBDir + '/' + GRIBFile
 
-  GRIBFieldAbbrev = 'APCP' ; total precipitation
+  GRIBFieldAbbrev = 'APCP'      ; total precipitation
 
-  DECODE_GRIB1_RECORD, GRIBFilePath, $
-                       ScratchDir, $
-                       GRIBFieldAbbrev, $
-                       units, $
-                       refTime_YYYYMMDDHH, $
-                       timeRange, $
-                       p1, $
-                       p2, $
-                       nx, $
-                       ny, $
-                       QPEGrid_, $
-                       NO_DATA_VALUE = NoDataValue
+  if (GRIB_version eq 1) then $
+      DECODE_GRIB1_RECORD, GRIBFilePath, $
+                           ScratchDir, $
+                           GRIBFieldAbbrev, $
+                           units, $
+                           refTime_YYYYMMDDHH, $
+                           timeRange, $
+                           p1, $
+                           p2, $
+                           nx, $
+                           ny, $
+                           QPEGrid_, $
+                           NO_DATA_VALUE = NoDataValue $
+  else $
+      DECODE_GRIB2_RECORD, GRIBFilePath, $
+                           ScratchDir, $
+                           GRIBFieldAbbrev, $
+                           record, $
+                           verificationTime_YYYYMMDDHH, $
+                           level, $
+                           timeRange, $
+                           varAbbrev, $
+                           varField, $
+                           units, $
+                           nx, $
+                           ny, $
+                           QPEGrid_, $
+                           NO_DATA_VALUE = NoDataValue
 
   if NOT(ISA(QPEGrid_)) then begin
       ERR_MSG, 'Failed to decode "' + GRIBFieldAbbrev + '" from ' + $
@@ -478,19 +491,33 @@ PRO GET_STAGE4_HRAP_QPE, $
 ;+
 ;     Get grid geometry and projection information.
 ;-
-      GET_GRIB1_POLAR_STEREO_GRID_INFO, $
-          GRIBFilePath, $
-          ScratchDir, $
-          GRIBFieldAbbrev, $
-          nx_, $
-          ny_, $
-          lat00, $
-          lon00, $
-          latd, $
-          lonv, $
-          dx, $
-          dy, $
-          status
+      if (GRIB_version eq 1) then $
+          GET_GRIB1_POLAR_STEREO_GRID_INFO, $
+              GRIBFilePath, $
+              ScratchDir, $
+              GRIBFieldAbbrev, $
+              nx_, $
+              ny_, $
+              lat00, $
+              lon00, $
+              latd, $
+              lonv, $
+              dx, $
+              dy, $
+              status $
+      else $
+          GET_GRIB2_POLAR_STEREO_GRID_INFO, $
+              GRIBFilePath, $
+              GRIBFieldAbbrev, $
+              nx_, $
+              ny_, $
+              lat00, $
+              lon00, $
+              latd, $
+              lonv, $
+              dx, $
+              dy, $
+              status
 
       if NOT(status) then begin
           ERR_MSG, 'Failed to read GRIB header from ' + $
@@ -512,22 +539,6 @@ PRO GET_STAGE4_HRAP_QPE, $
           RETURN
       endif
   
-      ;; if (nx_ ne nx) then begin
-      ;;     ERR_MSG, 'GRIB header # columns (' + $
-      ;;              STRCOMPRESS(nx_, /REMOVE_ALL) + $
-      ;;              ') does not match established value (' + $
-      ;;              STRCOMPRESS(nx, /REMOVE_ALL)
-      ;;     RETURN
-      ;; endif
-
-      ;; if (ny_ ne ny) then begin
-      ;;     ERR_MSG, 'GRIB header # rows (' + $
-      ;;              STRCOMPRESS(ny_, /REMOVE_ALL) + $
-      ;;              ') does not match established value (' + $
-      ;;              STRCOMPRESS(ny, /REMOVE_ALL)
-      ;;     RETURN
-      ;; endif
-
 ;+
 ;     Create data structure for the HRAP grid and projection. The
 ;     limitations of the GRIB version 1 specification lead to
@@ -535,26 +546,41 @@ PRO GET_STAGE4_HRAP_QPE, $
 ;     verify the parameters as they will be interpreted by the wgrib
 ;     program, then use more precise replacement values.
 ;-
-      if (dx ne 4763.0D) then begin
+      if (GRIB_version eq 1) then begin
+
+          if (dx ne 4763.0D) then begin
+              ERR_MSG, 'Unexpected "dx" value in Stage IV file ' + $
+                       GRIBFilePath
+              RETURN
+          endif
+          if (dy ne 4763.0D) then begin
+              ERR_MSG, 'Unexpected "dy" value in Stage IV file ' + $
+                       GRIBFilePath
+              RETURN
+          endif
+
+          dx = 4762.5D
+          dy = 4762.5D
+
+      endif
+
+      if (dx ne 4762.5D) then begin
           ERR_MSG, 'Unexpected "dx" value in Stage IV file ' + $
                    GRIBFilePath
           RETURN
       endif
-      if (dy ne 4763.0D) then begin
+      if (dy ne 4762.5D) then begin
           ERR_MSG, 'Unexpected "dy" value in Stage IV file ' + $
                    GRIBFilePath
           RETURN
       endif
 
-      dx = 4762.5D
-      dy = 4762.5D
-
-      if (lat00 ne 23.117D) then begin
+      if (STRCRA(STRING(lat00, FORMAT = '(F8.4)')) ne '23.1170') then begin
           ERR_MSG, 'Unexpected "lat1" value in Stage IV file ' + $
                    GRIBFilePath
           RETURN
       endif
-      if (lon00 ne -119.023D) then begin
+      if (STRCRA(STRING(lon00, FORMAT = '(F9.4)')) ne '-119.0230') then begin
           ERR_MSG, 'Unexpected "lon1" value in Stage IV file ' + $
                    GRIBFilePath
           RETURN
