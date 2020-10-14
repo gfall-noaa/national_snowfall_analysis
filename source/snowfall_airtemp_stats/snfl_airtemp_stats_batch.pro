@@ -7,7 +7,6 @@
 
 ; Currently, the idea is that if the average daily temperature is
 ; below some threshold AND the minimum daily temperature is below some
-
 ; threshold (0 deg C most likely), then any QPE that occurs is
 ; probably snow.
 
@@ -311,14 +310,15 @@ PRO SNFL_AIRTEMP_STATS_BATCH
               finishDate_Julian - $
               DOUBLE(windowHoursBack + windowHoursForward) / 24.0D
           startDate_GISRS = JULIAN_TO_GISRS_DATE(startDate_Julian)
-
+          ;; print, 'getting snowfall obs from ' + startdate_gisrs + $
+          ;;        ' to ' + finishdate_gisrs
 
 
 ;         Get snowfall_raw observations.
 ;
 ;     *** Make sure PGHOSTADDR environment variable is not set. ***
 
-          webPGHost = 'wdb0'
+          webPGHost = 'wdb0.dmz.nohrsc.noaa.gov'
 
           snflThresholdMStr = STRCRA(DOUBLE(snflThreshold) * 0.0254D)
 
@@ -768,7 +768,8 @@ PRO SNFL_AIRTEMP_STATS_BATCH
                   JULIAN_TO_GISRS_DATE(startDate_Julian - 23.0D / 24.0D)
               finishDate_GISRS = $
                   JULIAN_TO_GISRS_DATE(finishDate_Julian)
-
+              ;; print, 'getting temperature obs from ' + startdate_gisrs + $
+              ;;        ' to ' + finishdate_gisrs
 
 ;             Target stations a few at a time.
 
@@ -791,6 +792,13 @@ PRO SNFL_AIRTEMP_STATS_BATCH
                       if (sc lt sc2) then stationPart = stationPart + ', '
                   endfor
                   stationPart = stationPart + ')'
+
+                  ; point.sm_airtemp_surface is a view:
+                  ;   create view
+                  ;   sm_airtemp_surface as
+                  ;   select obj_identifier, date,
+                  ;   value_sm_airtemp_surface as value
+                  ;   from rasters
 
                   statement = 'psql -d web_data -h ' + webPGHost + $
                               ' -t -A -c ' + $
@@ -838,10 +846,12 @@ PRO SNFL_AIRTEMP_STATS_BATCH
               endelse
 
               if (numAirTemp eq 0) then begin
-                  print, 'no air temp data for ' + STRCRA(numSnowfall) + $
+                  PRINT, 'No air temp data for ' + STRCRA(numSnowfall) + $
                          ' snowfall reports'
                   CONTINUE
-              endif
+              endif else begin
+                  PRINT, 'Found ' + STRCRA(numSnowfall) + ' reports.'
+              endelse
 
               mdlAirTempHourly = MAKE_ARRAY(numHourlyObsHrsEachDay, $
                                             numSnowfall, $
@@ -929,12 +939,18 @@ PRO SNFL_AIRTEMP_STATS_BATCH
                   h2 = h1 + 23
                   if (h1 lt 0) then STOP
                   if (h2 ge numHourlyObsHrsEachDay) then STOP
+                  ;; help, stationobsairtemphourly
+                  ;; print, julian_to_yyyymmddhh(snowfallreport[sc].date_utc)
+                  ;; print, h1, h2
                   stationObsAirTempHourly = stationObsAirTempHourly[h1:h2]
                   ind = WHERE(stationObsAirTempHourly ne ndv, count)
                   if (count gt 20) then begin
+                      ;; print, stationobsairtemphourly
                       nt[sc] = MIN(stationObsAirTempHourly[ind])
                       xt[sc] = MAX(stationObsAirTempHourly[ind])
                       at[sc] = MEAN(stationObsAirTempHourly[ind])
+                      ;; print, count, nt[sc], xt[sc], at[sc]
+                      ;; move = get_kbrd(1)
                       numObsBased++
                   endif
                   hhist[count] = hhist[count] + 1
