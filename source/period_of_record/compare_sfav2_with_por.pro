@@ -62,6 +62,12 @@
   por_years = '2009-2019'
   por_name = 'September 30 to May 1'
   period_title = '2019-09-30 to 2020-05-01'
+  
+  start_date = '20201101'
+  finish_date = '20201130'
+  por_years = '2009-2019'
+  por_name = 'November'
+  period_title = 'November 2020'
 
   ;; start_date = '20190930'  ;; finish_date = '20200224'
   ;; period_file = '20191001_to_20200224'
