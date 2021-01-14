@@ -985,6 +985,12 @@ PRO GET_HOURLY_HRRR_LC_APCP_WEASD, $
 
   endif
 
+  ;; if ((GRIBDir eq '') and (GRIBFile eq '')) then $
+  ;;   USR_MSG, '01 HRRR QPF not found in ' + $
+  ;;            GRIBDir_subdirs + '/' + GRIBFile_YYDOY + $
+  ;;            ' or ' + $
+  ;;            GRIBDIR_subdirs + '/' + GRIBFile_YYYYMMDD
+
   if (FILE_TEST(GRIBDir_noSubdirs) and $
       ((GRIBDir eq '') or (GRIBFile eq ''))) then begin
 
@@ -1008,6 +1014,12 @@ PRO GET_HOURLY_HRRR_LC_APCP_WEASD, $
       endcase
 
   endif
+
+  ;; if ((GRIBDir eq '') and (GRIBFile eq '')) then $
+  ;;   USR_MSG, '02 HRRR QPF not found in ' + $
+  ;;            GRIBDir_noSubdirs + '/' + GRIBFile_YYDOY + $
+  ;;            ' or ' + $
+  ;;            GRIBDIR_noSubdirs + '/' + GRIBFile_YYYYMMDD
 
   if ((GRIBDir eq '') or (GRIBFile eq '') or $
       NOT(FILE_TEST(GRIBDir + '/' + GRIBFile))) then begin
@@ -1117,6 +1129,12 @@ PRO GET_HOURLY_HRRR_LC_APCP_WEASD, $
 
           endif
 
+          ;; if ((GRIBDir eq '') and (GRIBFile eq '')) then $
+          ;;   USR_MSG, '03 HRRR QPF not found in ' + $
+          ;;            GRIBDir_subdirs + '/' + GRIBFile_YYDOY + $
+          ;;            ' or ' + $
+          ;;            GRIBDIR_subdirs + '/' + GRIBFile_YYYYMMDD
+
           if (FILE_TEST(GRIBDir_noSubdirs) and $
               ((GRIBDir eq '') or (GRIBFile eq ''))) then begin
 
@@ -1142,6 +1160,12 @@ PRO GET_HOURLY_HRRR_LC_APCP_WEASD, $
               endcase
 
           endif
+
+          ;; if ((GRIBDir eq '') and (GRIBFile eq '')) then $
+          ;;   USR_MSG, '04 HRRR QPF not found in ' + $
+          ;;            GRIBDir_noSubdirs + '/' + GRIBFile_YYDOY + $
+          ;;            ' or ' + $
+          ;;            GRIBDIR_noSubdirs + '/' + GRIBFile_YYYYMMDD
 
           ;; if FILE_TEST(GRIBDir + '/' + GRIBFile) then BREAK
 
@@ -1274,6 +1298,12 @@ PRO GET_HOURLY_HRRR_LC_APCP_WEASD, $
 
           endif
 
+          ;; if ((GRIBDir eq '') and (GRIBFile eq '')) then $
+          ;;   USR_MSG '05 HRRR QPF not found in ' + $
+          ;;            GRIBDir_subdirs + '/' + GRIBFile_YYDOY + $
+          ;;            ' or ' + $
+          ;;            GRIBDIR_subdirs + '/' + GRIBFile_YYYYMMDD
+
           if (FILE_TEST(GRIBDir_noSubdirs) and $
               ((GRIBDir eq '') or (GRIBFile eq ''))) then begin
 
@@ -1299,6 +1329,12 @@ PRO GET_HOURLY_HRRR_LC_APCP_WEASD, $
               endcase
 
           endif
+
+          ;; if ((GRIBDir eq '') and (GRIBFile eq '')) then $
+          ;;   USR_MSG, '06 HRRR QPF not found in ' + $
+          ;;            GRIBDir_noSubdirs + '/' + GRIBFile_YYDOY + $
+          ;;            ' or ' + $
+          ;;            GRIBDIR_noSubdirs + '/' + GRIBFile_YYYYMMDD
 
           ;; if FILE_TEST(GRIBDir + '/' + GRIBFile) then BREAK
 
