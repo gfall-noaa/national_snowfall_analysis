@@ -379,6 +379,7 @@
       reportPercent = INTARR(numStations)
       reportObsTotal = MAKE_ARRAY(numStations, /FLOAT, VALUE = ndv)
       reportAnlTotal = MAKE_ARRAY(numStations, /FLOAT, VALUE = ndv)
+      reportAnlSigma = MAKE_ARRAY(numStations, /FLOAT, VALUE = ndv)
 
       for sc = 0, numStations - 1 do begin
 
@@ -391,6 +392,17 @@
               reportAnlTotal[sc] = $
                   TOTAL(snowfallReport[sc].anl_val_inches[ind])
           endif
+
+;         Simple uncertainty estimate: if either observed or analyzed
+;         snowfall is nonzero, that analysis has a 0.5 inch
+;         uncertainty.
+          ind = WHERE((snowfallReport[sc].obs_val_meters ne ndv) and $
+                      (snowfallReport[sc].anl_val_inches ne ndv) and $
+                      ((snowfallReport[sc].obs_val_meters gt 0.0) or $
+                       (snowfallReport[sc].anl_val_inches gt 0.0)), $
+                      count)
+          if (count gt 0) then $
+              reportAnlSigma[sc] = SQRT(1.0 * count)
 
       endfor
 
@@ -430,7 +442,10 @@
             YRANGE = [0, 250], $
             YTITLE = 'Total Snowfall Analysis (inches)', $
             PSYM = 4
-
+      DRAW_ERROR_BARS, reportObsTotal[ind] * 39.3701, $
+                       reportAnlTotal[ind], $
+                       reportAnlSigma[ind], $
+                       COLOR = 100
 
 ;     Identify stations with the largest discrepancies.
 
@@ -467,6 +482,7 @@ SKIP:
   reportCount = LONARR(numStations)
   reportObsTotal = MAKE_ARRAY(numStations, /FLOAT, VALUE = ndv)
   reportAnlTotal = MAKE_ARRAY(numStations, /FLOAT, VALUE = ndv)
+  reportAnlSigma = MAKE_ARRAY(numStations, /FLOAT, VALUE = ndv)
 
   for sc = 0, numStations - 1 do begin
 
@@ -480,6 +496,16 @@ SKIP:
           reportAnlTotal[sc] = $
               TOTAL(snowfallReport[sc].anl_val_inches[ind])
       endif
+
+;     Simple uncertainty estimate: if either observed or analyzed
+;     snowfall is nonzero, that analysis has a 0.5 inch uncertainty.
+      ind = WHERE((snowfallReport[sc].obs_val_meters ne ndv) and $
+                  (snowfallReport[sc].anl_val_inches ne ndv) and $
+                  ((snowfallReport[sc].obs_val_meters gt 0.0) or $
+                   (snowfallReport[sc].anl_val_inches gt 0.0)), $
+                  count)
+      if (count gt 0) then $
+          reportAnlSigma[sc] = SQRT(0.5 * count)
 
   endfor
 
@@ -549,7 +575,7 @@ SKIP:
   x = reportObsTotal[ind[ind2]] * 39.3701
   y = reportAnlTotal[ind[ind2]]
   n = reportCount[ind[ind2]]
-
+  s = reportAnlSigma[ind[ind2]]
 
 ; Do temporal correlation.
 
@@ -574,7 +600,7 @@ SKIP:
   if NOT(FINITE(corr)) then STOP
 
   PRINT, 'Comparing ' + STRCRA(count2) + ' results.'
-  PRINT, 'Overall bias: ', bias
+  PRINT, 'Aggregatei bias: ', bias
   PRINT, 'Geometric mean bias: ', gmBias
   PRINT, 'Correlation: ', corr
   PRINT, 'Rank correlation: ', rCorr
@@ -594,6 +620,40 @@ SKIP:
         XTITLE = 'Log Multiplicative Bias'
 
 
+
+; This is repeated below; just trying to redo stats with "outliers"
+; removed.
+  error = y - x
+  rse = SQRT(error^2.0)
+  order = REVERSE(SORT(rse))
+  wc = 100
+  PRINT, '--'
+  PRINT, 'With top ' + STRCRA(wc) + ' departures excluded:'
+  PRINT, 'Aggregate bias: ', TOTAL(y[order[wc:count2-1]]) / $
+         TOTAL(x[order[wc:count2-1]])
+  PRINT, 'Geometric mean bias: ', 10.0^MEAN(ALOG10(y[order[wc:count2-1]] / $
+                                                   x[order[wc:count2-1]]))
+  PRINT, 'Correlation: ', CORRELATE(x[order[wc:count2-1]], $
+                                    y[order[wc:count2-1]])
+  PRINT, 'Rank correlation: ', R_CORRELATE(x[order[wc:count2-1]], $
+                                           y[order[wc:count2-1]])
+  PRINT, 'RMSE: ', SQRT(MEAN((y[order[wc:count2-1]] - $
+                              x[order[wc:count2-1]])^2.0))
+  intSlp_ = LINFIT(x[order[wc:count2-1]], $
+                   y[order[wc:count2-1]], $
+                   YFIT = f_, $
+                   MEASURE_ERRORS = s[order[wc:count2-1]], $
+                   CHISQR = chi_squared_, $
+                   SIGMA = intSlpSigma_)
+  PRINT, 'Chi squared: ', chi_squared_
+  PRINT, '--'
+
+
+
+
+
+
+  
   oldDevice = !D.Name
   oldFont = !P.Font
   SET_PLOT, 'PS'
@@ -633,11 +693,14 @@ SKIP:
         YRANGE = yRange, YSTYLE = 1, $
         YTITLE = 'Total Snowfall Analysis (inches)', $
         /NODATA
+  DRAW_ERROR_BARS, x, y, s, COLOR = 200
 
 
 ; Identify stations with the largest discrepancies.
 
-  intSlp = LINFIT(x, y, YFIT = f)
+  intSlp = LINFIT(x, y, YFIT = f, $
+                  MEASURE_ERRORS = s, $
+                  CHISQR = chi_squared, SIGMA = intSlpSigma)
   PLOTS, !X.CRange, $
          [intSlp[0] + intSlp[1] * !X.CRange[0], $
           intSlp[0] + intSlp[1] * !X.CRange[1]], $
@@ -649,7 +712,12 @@ SKIP:
              TOTAL((y - f)^2.0) / $
              TOTAL((y - MEAN(y))^2.0)
   PRINT, 'Correlation (check): ', SQRT(rSquared) ; should be same as corr
+  PRINT, 'Chi squared: ' + STRCRA(chi_squared)
+  PRINT, '10% cutoff: ' + STRCRA(CHISQR_CVF(0.01, count2 - 1))
+; Calculate sigma for each x.
+  sigma_sq_x = x^2.0 * intSlpSigma[1]^2.0 + intSlpSigma[0]^2.0
 
+  
   error = y - x
   rse = SQRT(error^2.0)
   order = REVERSE(SORT(rse))
@@ -689,7 +757,7 @@ SKIP:
       ;;      (reportObsTotal[ind[ind2[order[oc]]]] * 39.3701 gt 180.0))) $
       ;;   then begin
 
-      worstCount = 20
+      worstCount = 25
       if (oc lt worstCount) then $
           textColor = redInd $
       else $
