@@ -346,7 +346,8 @@ PRO SNFL_AIRTEMP_STATS_BATCH
                       finishDate_GISRS + ':00:00'' ' + $
                       'and t2.duration = 86400 ' + $
                       'and t2.value is not NULL ' + $
-                      'and t2.value >= ' + snflThresholdMStr + ' ' + $
+                      'and t2.value >= 0.0 ' + $
+                      ;; 'and t2.value >= ' + snflThresholdMStr + ' ' + $
                                 ;         'and t2.value >= 0.0 ' + $
                                 ;        'and t2.value < 99.5 ' + $
                       'and t1.obj_identifier = t2.obj_identifier ' + $

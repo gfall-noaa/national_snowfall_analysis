@@ -1,6 +1,6 @@
 #!/bin/sh
 export START_YEAR=2006
-export FINISH_YEAR=2018
+export FINISH_YEAR=2019
 
 # 21 days centered on 10/01
 export START_DATE_MMDD=0921
@@ -57,7 +57,7 @@ export START_DATE_MMDD=1230
 export FINISH_DATE_MMDD=0119
 idl -quiet -rt=snfl_airtemp_stats_batch.sav
 
-export FINISH_YEAR=2019
+export FINISH_YEAR=2020
 
 # 21 days centered on 01/19
 export START_DATE_MMDD=0109
