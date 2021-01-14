@@ -3633,10 +3633,10 @@ GHCND_dir = '/nwcdev/archive/GHCN_daily_archive'
 climStartYear = 1990
 climFinishYear = 2019
 
-climStartDate_MMDD = '0401'
+climStartDate_MMDD = '1001'
 climFinishDate_MMDD = '1031'
-climName = 'Summer'
-longClimName = 'Summer'
+climName = 'Oct'
+longClimName = 'October'
 GENERATE_SLR_CLIMATOLOGY, GHCND_dir, $
                           climStartYear, $
                           climFinishYear, $
@@ -3644,5 +3644,92 @@ GENERATE_SLR_CLIMATOLOGY, GHCND_dir, $
                           climFinishDate_MMDD, $
                           climName, $
                           LONG_CLIM_NAME = longClimName
+
+climStartDate_MMDD = '1101'
+climFinishDate_MMDD = '1130'
+climName = 'Nov'
+longClimName = 'November'
+GENERATE_SLR_CLIMATOLOGY, GHCND_dir, $
+                          climStartYear, $
+                          climFinishYear, $
+                          climStartDate_MMDD, $
+                          climFinishDate_MMDD, $
+                          climName, $
+                          LONG_CLIM_NAME = longClimName
+
+climStartDate_MMDD = '1201'
+climFinishDate_MMDD = '1231'
+climName = 'Dec'
+longClimName = 'December'
+GENERATE_SLR_CLIMATOLOGY, GHCND_dir, $
+                          climStartYear, $
+                          climFinishYear, $
+                          climStartDate_MMDD, $
+                          climFinishDate_MMDD, $
+                          climName, $
+                          LONG_CLIM_NAME = longClimName
+
+climStartYear = 1991
+climFinishYear = 2020
+
+climStartDate_MMDD = '0101'
+climFinishDate_MMDD = '0131'
+climName = 'Jan'
+longClimName = 'January'
+GENERATE_SLR_CLIMATOLOGY, GHCND_dir, $
+                          climStartYear, $
+                          climFinishYear, $
+                          climStartDate_MMDD, $
+                          climFinishDate_MMDD, $
+                          climName, $
+                          LONG_CLIM_NAME = longClimName
+
+climStartDate_MMDD = '0201'
+climFinishDate_MMDD = '0228'
+climName = 'Feb'
+longClimName = 'February'
+GENERATE_SLR_CLIMATOLOGY, GHCND_dir, $
+                          climStartYear, $
+                          climFinishYear, $
+                          climStartDate_MMDD, $
+                          climFinishDate_MMDD, $
+                          climName, $
+                          LONG_CLIM_NAME = longClimName
+
+climStartDate_MMDD = '0301'
+climFinishDate_MMDD = '0331'
+climName = 'Mar'
+longClimName = 'March'
+GENERATE_SLR_CLIMATOLOGY, GHCND_dir, $
+                          climStartYear, $
+                          climFinishYear, $
+                          climStartDate_MMDD, $
+                          climFinishDate_MMDD, $
+                          climName, $
+                          LONG_CLIM_NAME = longClimName
+
+climStartDate_MMDD = '0401'
+climFinishDate_MMDD = '0430'
+climName = 'Apr'
+longClimName = 'April'
+GENERATE_SLR_CLIMATOLOGY, GHCND_dir, $
+                          climStartYear, $
+                          climFinishYear, $
+                          climStartDate_MMDD, $
+                          climFinishDate_MMDD, $
+                          climName, $
+                          LONG_CLIM_NAME = longClimName
+
+;; climStartDate_MMDD = '0401'
+;; climFinishDate_MMDD = '1031'
+;; climName = 'Summer'
+;; longClimName = 'Summer'
+;; GENERATE_SLR_CLIMATOLOGY, GHCND_dir, $
+;;                           climStartYear, $
+;;                           climFinishYear, $
+;;                           climStartDate_MMDD, $
+;;                           climFinishDate_MMDD, $
+;;                           climName, $
+;;                           LONG_CLIM_NAME = longClimName
 
 end

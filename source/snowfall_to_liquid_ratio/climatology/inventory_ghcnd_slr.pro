@@ -15,18 +15,23 @@
 
   GHCND_dir = '/nwcdev/archive/GHCN_daily_archive'
   year = 1986 + INDGEN(33)
+  year = 2010 + INDGEN(11)
+  ndv = -9999
+  startDate_MMDD = '0101'
+  finishDate_MMDD = '0131'
 
   for yc = 0, N_ELEMENTS(year) - 1 do begin
 
+      startDate_YYYYMMDD = STRCRA(year[yc]) + startDate_MMDD
+      
       READ_GHCND_US_CA_MX_BY_YEAR, GHCND_dir, $
                                    year[yc], $
-                                   startDate_YYYYMMDD, $
-                                   finishDate_YYYYMMDD, $
+                                   ndv, $
                                    numDays, $
                                    numStations, $
                                    GHCNStationID, $
                                    GHCNData, $
-                                   ndv
+                                   /VERBOSE
 
 ;+
 ;     Inventory data and report results.
