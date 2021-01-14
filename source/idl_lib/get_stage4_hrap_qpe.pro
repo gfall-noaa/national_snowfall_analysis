@@ -371,8 +371,9 @@ PRO GET_STAGE4_HRAP_QPE, $
   endif
 
   if (((GRIBDir eq '') or (GRIBFile eq '')) and $
-      (FIX(accumEndDate_YYYY) ge 2020) and $
-      (FIX(accumEndDate_MM) ge 7)) then begin
+      (((FIX(accumEndDate_YYYY) ge 2020) and $
+        (FIX(accumEndDate_MM) ge 7)) or $
+       (FIX(accumEndDate_YYYY ge 2021)))) then begin
 ;+
 ;     No GRIB 1 file found. Try GRIB 2.
 ;-
