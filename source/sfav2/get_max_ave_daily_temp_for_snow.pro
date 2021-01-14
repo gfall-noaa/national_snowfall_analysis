@@ -1,31 +1,43 @@
 FUNCTION GET_MAX_AVE_DAILY_TEMP_FOR_SNOW, date_YYYYMMDDHH
   
-; This function estimates, as a function of calendar date, the average
-; daily temperature above which the likelihood of snow is very small.
+; This function estimates, as a function of calendar date, the average daily
+; temperature above which snowfall is unlikely to be observed.
 ;
 ; The hard-coded values below are results for a run of the program
-; "snfl_airtemp_stats_batch.pro" that examines 24-hour snowfall
-; observations and corresponding hourly SNODAS temperatures (these are
-; downscaled and error-corrected Rapid Refresh Analysis temperature
-; data, nearest-neighbor sampled at station locations).
+; "snfl_prcp_tair_stats.pro" that examines 24-hour snowfall observations and
+; corresponding min/max/ave daily temperatures from GHCN-D.
 ;
-; For a given range of calendar dates, snowfall observations and
-; corresponding average daily SNODAS temperatures are collected for
-; all days in that range for the years XX2006-2015XX
-; 2006-2017/18. Those temperatures associated with daily snowfall
-; totals exceeding 0.1 inch are placed into a histogram, and
-; temperature thresholds associated with various cumulative
-; distribution function levels are identified.
+; For a given range of calendar dates, snowfall observations and corresponding
+; average daily SNODAS temperatures are collected for all days in that range
+; for the years 2005-2019 / 2006-2020 (the former for October - December, the
+; latter for January - April). Those temperatures associated with daily
+; snowfall totals exceeding 0.1 inch when precipitation exceeding 0.01 inch is
+; also observed are effectively placed into a histogram, and temperature
+; thresholds associated with various cumulative distribution function levels
+; are identified.
+  
+; For this function, the value CSI_max_tc_degC[4] for each date range is being
+; used (here it used to be called "aveTempZero95" because it was the average
+; temperature associated with a POD = 95% result). Now it is called
+; "aveTempMaxCSI" because it is that - the average temperature associated with
+; the maximum critical success index (CSI).
 
-; For this function, the "atMax2" variable from that program is being
-; used (here it is called "aveTempZero95". This is the "95% threshold"
-; temperature; i.e., 95% of observed snowfall occurs on days where the
-; average daily temperature is lower than this amount. The data used
-; to establish "atMax2" is subjected to the additional condition that
-; the minimum daily SNODAS temperature MUST be below freezing.
+; As we increase the average daily temperature at which we predict
+; precipitation to be snowfall, the number of hits increases and the number of
+; misses decreases, increasing (improving) the POD. However, the number of
+; false alarms also increases as we do this, increasing (degrading) the
+; FAR. The maximum CSI is the point at which one can argue that the best
+; compromise is being made, i.e., we have raised the temperature enough to
+; produce a good number of hits, but not so much that they are coming at the
+; expense of too many false alarms.
+
+; In earlier incarnations, the additional condition that the minimum daily
+; temperature must be below freezing was applied to this process. However, the
+; most recent effort has shown that this condition results in a slight
+; degradation in our results, even though it seems a sensible requirement.
 
 ; The values of date_MMDD below are the midpoints of the 21-day range
-; used to produce the histogram from which "aveTempZero95" values are
+; used to produce the histogram from which "aveTempMaxCSI" values are
 ; inferred. These ranges overlap by 10 days. The time of day
 ; associated with the temperature values is 12Z.
 
@@ -55,6 +67,11 @@ FUNCTION GET_MAX_AVE_DAILY_TEMP_FOR_SNOW, date_YYYYMMDDHH
                    1.49, 1.33, 1.29, 1.62, 1.46, 1.44, 1.94, 2.65, $
                    3.59, 4.78, 5.14, 5.49, 5.98, 6.46]
 
+; These are the average daily temperatures associated with maximum critical
+; success index, for 2005-19 / 2006-20.
+  aveTempMaxCSI = [1.5, 1.5, 1.0, 1.5, 1.5, 1.5, 1.5, 1.0, $
+                   1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.5, 2.0, $
+                   2.0, 2.0, 2.5, 2.5, 2.5, 2.5]
 
 ; Check arguments for correct type and valid contents.
 
@@ -136,11 +153,11 @@ FUNCTION GET_MAX_AVE_DAILY_TEMP_FOR_SNOW, date_YYYYMMDDHH
   endif
 
   case 1 of
-      prevInd eq -1: cutoff = aveTempZero95[nextInd]
-      nextInd eq -1: cutoff = aveTempZero95[prevInd]
-      prevInd eq nextInd: cutoff = aveTempZero95[prevInd]
-      else: cutoff = aveTempZero95[prevInd] + $
-                     (aveTempZero95[nextInd] - aveTempZero95[prevInd]) / $
+      prevInd eq -1: cutoff = aveTempMaxCSI[nextInd]
+      nextInd eq -1: cutoff = aveTempMaxCSI[prevInd]
+      prevInd eq nextInd: cutoff = aveTempMaxCSI[prevInd]
+      else: cutoff = aveTempMaxCSI[prevInd] + $
+                     (aveTempMaxCSI[nextInd] - aveTempMaxCSI[prevInd]) / $
                      (nextDate_Julian - prevDate_Julian) * $
                      (date_Julian - prevDate_Julian)
   endcase

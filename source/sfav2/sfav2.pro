@@ -2621,8 +2621,8 @@ PRO SFAV2, anlEndDate_YYYYMMDDHH
                       /SHOW_HIGH, $
                       TITLE = 'Avg. ' + temperature_source + $
                       ' Air Temp. ' + $
-                      '(95% cutoff = ' + $
-                      FORMAT_FLOAT(aveTempCutoff) + '), ' + $
+                      '(max. CSI cutoff = ' + $
+                      FORMAT_FLOAT(aveTempCutoff) + '!Uo!NC), ' + $
                       STRCRA(duration) + ' hours ending ' + $
                       anlEndDate_YYYYMMDDHH + ' UTC', $
                       /COLORBAR, $
@@ -2650,7 +2650,7 @@ PRO SFAV2, anlEndDate_YYYYMMDDHH
           latResOut, minLatOut, maxLatOut, $
           'Average ' + temperature_source + $
           ' Air Temperature ' + $
-          '(95% cutoff = ' + FORMAT_FLOAT(aveTempCutoff) + ')!C' + $
+          '(max. CSI cutoff = ' + FORMAT_FLOAT(aveTempCutoff) + '!Uo!NC)!C' + $
           STRCRA(duration) + ' hours ending ' + $
           anlEndDate_GISRS + ' UTC', $
           'degrees Celsius', $
@@ -2885,6 +2885,10 @@ PRO SFAV2, anlEndDate_YYYYMMDDHH
           ;QPEGrid_NorthDown = !NULL
 
           okInd = WHERE(QPEInRFC ne ndv, okCount)
+          if (RFCName eq 'CBRFC') then begin
+              okInd = -1
+              okCount = 0L
+          endif
 
           numCellsMissing = numCellsInPolygon - okCount
           proportionMissing = $
@@ -9217,29 +9221,46 @@ ASSIMILATE:
                    lonResOutKrige - 0.5D)
       j_nn = ROUND((siteLat[assimPointsInd] - minLatOut) / $
                    latResOutKrige - 0.5D)
-      r2_hat = zGrid[i_nn, j_nn]
-      if ISA(zGridVariance) then r2_hat_var = zGridVariance[i_nn, j_nn]
-      i_nn = !NULL
-      j_nn = !NULL
+                                ;numColsOutKrige - 1L do begin
 
-      plotFile = outputDir + '/' + $
-                 'sfav2_' + domainLabel + '_' + durationStr + 'h_' + $
-                 anlEndDate_YYYYMMDDHH + $
-                 '_kriging_bias'
+      ;; HELP, zGrid
+      ;; PRINT, MIN(i_nn), MAX(i_nn), MIN(j_nn), MAX(j_nn)
+      ;; PRINT, numColsOutKrige, numRowsOutKrige
+      in_bounds_ind = WHERE((i_nn ge 0) and $
+                            (i_nn lt numColsOutKrige) and $
+                            (j_nn ge 0) and $
+                            (j_nn lt numRowsOutKrige), in_bounds_count)
 
-      title = 'Snowfall Kriging Bias, 2nd Pass, ' + subTitle
-      krigingBias = SFAV2_KRIGING_OUTPUT_BIAS(r2, $
-                                              r2_hat, $
-                                              r2_hat_var, $
-                                              ndv, $
-                                              OUTPUT_PNG_PATH = plotFile, $
-                                              TITLE = title, $
-                                              UTILITIES_DIR = utilsDir, $
-                                              VERBOSE = verbose)
+      if (in_bounds_count gt 0) then begin
 
-      ;; if NOT(ISA(krigingBias)) then krigingBias = 1.0
-      ;; ind = WHERE(zGrid ne ndv)
-      ;; zGrid[ind] = zGrid[ind] / krigingBias
+          r2 = r2[in_bounds_ind]
+          i_nn = i_nn[in_bounds_ind]
+          j_nn = j_nn[in_bounds_ind]
+          r2_hat = zGrid[i_nn, j_nn]
+          if ISA(zGridVariance) then r2_hat_var = zGridVariance[i_nn, j_nn]
+          i_nn = !NULL
+          j_nn = !NULL
+          
+          plotFile = outputDir + '/' + $
+                     'sfav2_' + domainLabel + '_' + durationStr + 'h_' + $
+                     anlEndDate_YYYYMMDDHH + $
+                     '_kriging_bias'
+
+          title = 'Snowfall Kriging Bias, 2nd Pass, ' + subTitle
+          krigingBias = SFAV2_KRIGING_OUTPUT_BIAS(r2, $
+                                                  r2_hat, $
+                                                  r2_hat_var, $
+                                                  ndv, $
+                                                  OUTPUT_PNG_PATH = plotFile, $
+                                                  TITLE = title, $
+                                                  UTILITIES_DIR = utilsDir, $
+                                                  VERBOSE = verbose)
+          
+          ;; if NOT(ISA(krigingBias)) then krigingBias = 1.0
+          ;; ind = WHERE(zGrid ne ndv)
+          ;; zGrid[ind] = zGrid[ind] / krigingBias
+
+      endif
 
 ;+
 ;     Truncate useFlag_P2 to remove artificial zeroes.
