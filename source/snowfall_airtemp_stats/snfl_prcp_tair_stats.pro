@@ -19,16 +19,26 @@ end
 
 PRO PLOT_SNFL_PRCP_TAIR_STATS, date_Julian, $
                                tair_thresh_name, $
-                               tair_thresh_degC, $
-                               tair_thresh_FAR, $
+                               all_POD_target_tair_thresh_degC, $
+                               all_POD_target_tair_thresh_FAR, $
+                               all_CSI_max, $
+                               all_CSI_max_tc_degC, $
+                               all_CSI_max_POD, $
+                               all_CSI_max_FAR, $
                                time_str
   !P.Color = 0
   !P.Background = 255
   !P.CharSize = 2
   dummy = LABEL_DATE(DATE_FORMAT = '%N-%D')
   for i = 0, N_ELEMENTS(tair_thresh_name) - 1 do begin
-      ttdgc = REFORM(tair_thresh_degC[i, *])
-      ttfar = REFORM(tair_thresh_FAR[i, *])
+      ttdgc = REFORM(all_POD_target_tair_thresh_degC[i, *])
+      ttfar = REFORM(all_POD_target_tair_thresh_FAR[i, *])
+
+      ttcsi = REFORM(all_CSI_max[i, *])
+      ttdgc = REFORM(all_CSI_max_tc_degC[i, *])
+      ttpod = REFORM(all_CSI_max_POD[i, *])
+      ttfar = REFORM(all_CSI_max_FAR[i, *])
+      
       PLOT, date_Julian, ttdgc, $
             YSTYLE = 8, $
             XTICKFORMAT = 'LABEL_DATE', XTICKUNITS = 'Month', $
@@ -43,12 +53,36 @@ PRO PLOT_SNFL_PRCP_TAIR_STATS, date_Julian, $
             YRANGE = [0, 1], $
             POS = [0.1, 0.1, 0.9, 0.9], $
             CHARSIZE = 2, PSYM = -7, SYMSIZE = 1.5
-      AXIS, YAXIS = 1, YTITLE = 'FAR', CHARSIZE = 2
-      PLOTS, [0.15, 0.25], [0.18, 0.18], PSYM = -7, SYMSIZE = 1.5, /NORMAL
-      XYOUTS, 0.27, 0.17, 'FAR', /NORMAL, CHARSIZE = 2
-      PLOTS, [0.15, 0.25], [0.23, 0.23], PSYM = -4, SYMSIZE = 2, /NORMAL
-      XYOUTS, 0.27, 0.22 , tair_thresh_name[i], /NORMAL, CHARSIZE = 2
-      
+      OPLOT, date_Julian, ttpod, $
+             PSYM = -6, SYMSIZE = 1.5
+      OPLOT, date_Julian, ttcsi, $
+             PSYM = -5, SYMSIZE = 1.5
+      AXIS, YAXIS = 1, YTITLE = 'POD, FAR, CSI', CHARSIZE = 2
+      x1 = 0.15
+      wid = 0.10
+      y1 = 0.18
+      x_gap = 0.02
+      y_gap = 0.01
+      y_break = 0.05
+
+      PLOTS, [x1, x1 + wid], [y1, y1], PSYM = -7, SYMSIZE = 1.5, /NORMAL
+      XYOUTS, x1 + wid + x_gap, y1 - y_gap, 'FAR', /NORMAL, CHARSIZE = 2
+;      PLOTS, [0.15, 0.25], [0.18, 0.18], PSYM = -7, SYMSIZE = 1.5, /NORMAL
+;      XYOUTS, 0.27, 0.17, 'FAR', /NORMAL, CHARSIZE = 2
+
+      y1 = y1 + y_break
+      PLOTS, [x1, x1 + wid], [y1, y1], PSYM = -5, SYMSIZE = 1.5, /NORMAL
+      XYOUTS, x1 + wid + x_gap, y1 - y_gap, 'CSI', /NORMAL, CHARSIZE = 2
+
+      y1 = y1 + y_break
+      PLOTS, [x1, x1 + wid], [y1, y1], PSYM = -6, SYMSIZE = 1.5, /NORMAL
+      XYOUTS, x1 + wid + x_gap, y1 - y_gap, 'POD', /NORMAL, CHARSIZE = 2
+
+      y1 = y1 + y_break
+      PLOTS, [x1, x1 + wid], [y1, y1], PSYM = -4, SYMSIZE = 2, /NORMAL
+      XYOUTS, x1 + wid + x_gap, y1 - y_gap, $
+              tair_thresh_name[i], /NORMAL, CHARSIZE = 2
+
       if (i lt (N_ELEMENTS(tair_thresh_name) - 1)) then $
           move = GET_KBRD(1)
   endfor
@@ -330,21 +364,29 @@ PRO PRCP_SNFL_TAIR_POD_FAR, prcp, $     ; tenths of mm
   ARROW, CSI_max_tc / 10.0, CSI_max, $
          0.5 * (!X.CRange[0] + CSI_max_tc / 10.0), CSI_max, $
          /DATA, HSIZE = !D.X_SIZE * 0.01, THICK = 2
-  XYOUTS, 0.5 * (!X.CRange[0] + CSI_max_tc / 10.0), $
-          CSI_max - 0.01 * y_range, $
-          'Max. CSI = ' + FORMAT_FLOAT(CSI_max), $
+  XYOUTS, 0.5 * (!X.CRange[0] + CSI_max_tc / 10.0) - 0.01 * x_range, $
+          CSI_max - 0.0 * y_range, $
+          'Max. CSI = ' + FORMAT_FLOAT(CSI_max) + $
+          '!Cat ' + FORMAT_FLOAT(CSI_max_tc / 10.0) + '!Uo!NC', $
           CHARSIZE = 2, ALIGNMENT = 1
-  
+
   PLOTS, [CSI_max_tc / 10.0, CSI_max_tc / 10.0], $
          [CSI_max, CSI_max_POD], COLOR = 180, THICK = 2
   ARROW, CSI_MAX_tc / 10.0, CSI_max_POD, $
          !X.CRange[0], CSI_max_POD, $
          /DATA, HSIZE = !D.X_SIZE * 0.01, COLOR = 180, THICK = 2
+  XYOUTS, !X.CRange[0] + 0.05 * x_range, $
+          CSI_max_POD + 0.01 * y_range, $
+          'POD = ' + FORMAT_FLOAT(CSI_max_POD)
   PLOTS, [CSI_max_tc / 10.0, CSI_max_tc / 10.0], $
          [CSI_max, CSI_max_FAR], COLOR = 180, THICK = 2
   ARROW, CSI_MAX_tc / 10.0, CSI_max_FAR, $
          !X.CRange[1], CSI_max_FAR, $
          /DATA, HSIZE = !D.X_SIZE * 0.01, COLOR = 180, THICK = 2
+  XYOUTS, !X.CRange[1] - 0.05 * x_range, $
+          CSI_max_FAR + 0.01 * y_range, $
+          'FAR = ' + FORMAT_FLOAT(CSI_max_FAR), $
+          ALIGNMENT = 1
   RETURN
   
 
@@ -937,12 +979,13 @@ end
   POD_target = 0.90
   FAR_target = 0.10
 
-  startYear = 2005
+  startYear =  2005
   finishYear = 2019
+
+  all_rep_date_Julian = []
 
   all_POD_target_tair_thresh_degC = []
   all_POD_target_tair_thresh_FAR = []
-  POD_target_tair_thresh_rep_date_Julian = []
 
   all_CSI_max = []
   all_CSI_max_tc_degC = []
@@ -973,8 +1016,12 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
 
   startDate_MMDD = '1001'
   finishDate_MMDD = '1021'
@@ -1000,8 +1047,12 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
 
   startDate_MMDD = '1011'
   finishDate_MMDD = '1031'
@@ -1025,15 +1076,25 @@ end
   rep_date_Julian = REP_DATE(2021, startDate_MMDD, finishDate_MMDD)
   all_POD_target_tair_thresh_degC = $
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
+  
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
   move = GET_KBRD(1)
 
@@ -1061,13 +1122,22 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
   move = GET_KBRD(1)
 
@@ -1095,13 +1165,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
   move = GET_KBRD(1)
 
@@ -1129,13 +1207,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
   move = GET_KBRD(1)
 
@@ -1163,13 +1249,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
   move = GET_KBRD(1)
 
@@ -1197,13 +1291,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
   move = GET_KBRD(1)
 
@@ -1231,13 +1333,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
   move = GET_KBRD(1)
 
@@ -1265,13 +1375,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '1230'
@@ -1298,13 +1416,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   ;; stop
@@ -1336,13 +1462,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '0119'
@@ -1369,13 +1503,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '0129'
@@ -1402,13 +1544,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '0208'
@@ -1435,13 +1585,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '0218'
@@ -1468,13 +1626,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '0228'
@@ -1501,13 +1667,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '0310'
@@ -1534,13 +1708,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '0320'
@@ -1567,13 +1749,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '0330'
@@ -1600,13 +1790,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '0409'
@@ -1633,13 +1831,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
   startDate_MMDD = '0419'
@@ -1666,13 +1872,21 @@ end
       [[all_POD_target_tair_thresh_degC], [POD_target_tair_thresh_degC]]
   all_POD_target_tair_thresh_FAR = $
       [[all_POD_target_tair_thresh_FAR], [POD_target_tair_thresh_FAR]]
-  POD_target_tair_thresh_rep_date_Julian = $
-      [POD_target_tair_thresh_rep_date_Julian, rep_date_Julian]
+  all_CSI_max = [[all_CSI_max], [CSI_max]]
+  all_CSI_max_tc_degC = [[all_CSI_max_tc_degC], [CSI_max_tc_degC]]
+  all_CSI_max_POD = [[all_CSI_max_POD], [CSI_max_POD]]
+  all_CSI_max_FAR = [[all_CSI_max_FAR], [CSI_max_FAR]]
+  all_rep_date_Julian = $
+      [all_rep_date_Julian, rep_date_Julian]
   time_str = STRCRA(startYear) + ' to ' + STRCRA(finishYear)
-  PLOT_SNFL_PRCP_TAIR_STATS, POD_target_tair_thresh_rep_date_Julian, $
+  PLOT_SNFL_PRCP_TAIR_STATS, all_rep_date_Julian, $
                              tair_thresh_name, $
                              all_POD_target_tair_thresh_degC, $
                              all_POD_target_tair_thresh_FAR, $
+                             all_CSI_max, $
+                             all_CSI_max_tc_degC, $
+                             all_CSI_max_POD, $
+                             all_CSI_max_FAR, $
                              time_str
 
 end
