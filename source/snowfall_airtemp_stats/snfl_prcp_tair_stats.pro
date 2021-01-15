@@ -41,23 +41,26 @@ PRO PLOT_SNFL_PRCP_TAIR_STATS, date_Julian, $
       
       PLOT, date_Julian, ttdgc, $
             YSTYLE = 8, $
+            XRANGE = [MIN(date_Julian), MAX(date_Julian)], XSTYLE = 1, $
             XTICKFORMAT = 'LABEL_DATE', XTICKUNITS = 'Month', $
             YTITLE = tair_thresh_name[i] + ' Cutoff (!Uo!NC)', $
             TITLE = tair_thresh_name[i] + ' Cutoff for Snowfall, ' + $
                     time_str, $
             POS = [0.1, 0.1, 0.9, 0.9], $
-            CHARSIZE = 2, PSYM = -4, SYMSIZE = 2
+            YMINOR = 1, $
+            CHARSIZE = 2, PSYM = -4, SYMSIZE = 2, /NOCLIP
       PLOT, date_Julian, ttfar, $
             /NOERASE, XSTYLE = 5, YSTYLE = 5, $
             XRANGE = !X.CRange, $
             YRANGE = [0, 1], $
             POS = [0.1, 0.1, 0.9, 0.9], $
-            CHARSIZE = 2, PSYM = -7, SYMSIZE = 1.5
+            CHARSIZE = 2, PSYM = -7, SYMSIZE = 1.5, /NOCLIP
       OPLOT, date_Julian, ttpod, $
-             PSYM = -6, SYMSIZE = 1.5
+             PSYM = -6, SYMSIZE = 1.5, /NOCLIP
       OPLOT, date_Julian, ttcsi, $
-             PSYM = -5, SYMSIZE = 1.5
+             PSYM = -5, SYMSIZE = 1.5, /NOCLIP
       AXIS, YAXIS = 1, YTITLE = 'POD, FAR, CSI', CHARSIZE = 2
+
       x1 = 0.15
       wid = 0.10
       y1 = 0.18
@@ -118,9 +121,13 @@ PRO PRCP_SNFL_TAIR_POD_FAR, prcp, $     ; tenths of mm
 ; determine the associated FAR.
 
 ; Next, determine the value of tair at which a prediction of snowfall
-; when the temperature is below that value gives a FAR of FAR_taret,
+; when the temperature is below that value gives a FAR of FAR_target,
 ; and determine the associated POD.
 
+; Finally, determine the value of tair at which a prediction of
+; snowfall when the temperature is below that value gives the maximum
+; possible value of CSI, and determind the associated POD and FAR.
+  
 ; t_cutoff is an array of temperature at which POD and FAR are
 ; calculated. The idea here is that tair is perhaps an average daily
 ; temperature, and we hope to identify the value of tair below which
@@ -194,9 +201,9 @@ PRO PRCP_SNFL_TAIR_POD_FAR, prcp, $     ; tenths of mm
   ind = WHERE(POD ne ndv, count)
   if (count eq 0) then STOP
   PLOT, t_cutoff[ind] / 10.0, POD[ind], $
-        TITLE = 'POD, FAR for ' + tair_name + '; ' + time_str, $
+        TITLE = 'POD, FAR, and CSI for ' + tair_name + '; ' + time_str, $
         XTITLE = tair_name + ' (!Uo!NC)', $
-        YTITLE = 'POD, FAR (Dimensionless)', $
+        YTITLE = 'POD, FAR, CSI (Dimensionless)', $
         XRANGE = [tc_min / 10.0, tc_max / 10.0], XSTYLE = 1, $
         YRANGE = [0, 1], $
         POS = [0.1, 0.1, 0.9, 0.9], $
@@ -295,6 +302,12 @@ PRO PRCP_SNFL_TAIR_POD_FAR, prcp, $     ; tenths of mm
   ind = WHERE(CSI ne ndv, count)
   if (count eq 0) then RETURN
   OPLOT, t_cutoff[ind] / 10.0, CSI[ind] ;, LINESTYLE = 6
+  if ((CSI[i1] eq ndv) or (CSI[i2]) eq ndv) then RETURN
+  POD_target_tair_thresh_CSI_ = CSI[i1] + (CSI[i2] - CSI[i1]) / $
+               FLOAT(t_cutoff[i2] - t_cutoff[i1]) * $
+               FLOAT(POD_target_tair_thresh_ - t_cutoff[i1])
+  PRINT, 'CSI = ' + STRCRA(POD_target_tair_thresh_CSI_) + ' at ' + $
+         STRCRA(POD_target_tair_thresh_ / 10.0)  + ' deg C'
 
 
 ; Find FAR = FAR_target
@@ -722,7 +735,7 @@ SKIP:
 
   tc_min = -250 ; tenths of deg C
   tc_max = 250  ; tenths of deg C
-  tc_step = 5
+  tc_step = 1
   num_tc = ROUND((tc_max - tc_min) / tc_step) + 1L
   tc = tc_min + LINDGEN(num_tc) * tc_step
 
@@ -976,7 +989,7 @@ end
 
   prcp_threshold = 0.01 * 25.4 * 10 ; tenths of mm
   snow_threshold = 0.1 * 25.4 ; mm
-  POD_target = 0.90
+  POD_target = 0.95 
   FAR_target = 0.10
 
   startYear =  2005
@@ -1887,6 +1900,5 @@ end
                              all_CSI_max_tc_degC, $
                              all_CSI_max_POD, $
                              all_CSI_max_FAR, $
-                             time_str
-
+                             time_str	
 end
