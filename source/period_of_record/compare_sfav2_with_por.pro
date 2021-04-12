@@ -1,6 +1,31 @@
 ; Compare aggregated National Snowfall Analysis with a corresponding
 ; aggregation over the (2009-2019) period of record.
 
+; Here's how you run this:
+;
+; First, you need to generate period of record data. You do this by
+; running gen_sfav2_por.py with "-s" and "-f" options for the period
+; of record you're going for. For period of record data to
+; compare with accumulations during water year 2021, I used
+;   "-s 2009 -f 2020".
+; Note that this creates files called "sfav2_por_2008_to_2019_..." for
+; October - December dates, and files called "sfav2_por_2009_to_2020_..." for
+; January - September dates.
+
+; Next, define the following as needed:
+; start_date = '20201001'
+; finish_date = '20210301'
+; por_years = '2009-2020'
+; por_name = 'October - February'
+; period_title = 'October 2020 - February 2021'
+;
+; Next, generate the aggregate snowfall for the period defined by
+; start_date and finish_date. The easiest way to do this is using the
+; "ad_hoc_agg.sh" script, but if you are comparing a seasonal snowfall
+; total with the period of record, these are generally produced by
+; operations and are already there.
+
+
   ;; start_date = '20200101'
   ;; finish_date = '20200201'
   ;; period_name = 'January'
@@ -85,6 +110,29 @@
   ;; period_title = 'February 1-14, 2020'
   ;; period_file = 'feb_1_to_14_2020'
 
+  start_date = '20201001'
+  finish_date = '20210301'
+  por_wy_start = 2009
+  por_wy_finish = 2020
+  por_years = '2008/09 - 2019/20'
+  ;; por_years = STRING(por_wy_start, FORMAT = '(I4.4)') + $
+  ;;             '-' + $
+  ;;             STRING(por_wy_finish, FORMAT = '(I4.4)')
+  por_name = 'October - February'
+  period_title = 'October 1, 2020 to March 1, 2021'
+
+
+
+  start_date = '20201001'
+  finish_date = '20210401'
+  por_wy_start = 2009
+  por_wy_finish = 2020
+  por_years = '2008/09 - 2019/20'
+  por_name = 'October - March'
+  period_title = 'October 1, 2020 to April 1, 2021'
+
+
+  
   period_file = start_date + '_to_' + finish_date
 
   input_agg_dir = '/operations/misc/snowfall_v2/sfav2_' + finish_date
@@ -115,7 +163,17 @@
   while (date_Julian le finish_date_Julian) do begin
 
       date_YYYYMMDDHH = JULIAN_TO_YYYYMMDDHH(date_Julian)
-      por_mean_daily_file = 'sfav2_por_mean_' + $
+      if (FIX(STRMID(date_YYYYMMDDHH, 4, 2)) ge 10) then $
+          por_years_file = STRING(por_wy_start - 1, FORMAT = '(I4.4)') + $
+                           '_to_' + $
+                           STRING(por_wy_finish - 1, FORMAT = '(I4.4)') $
+      else $
+          por_years_file = STRING(por_wy_start, FORMAT = '(I4.4)') + $
+                           '_to_' + $
+                           STRING(por_wy_finish, FORMAT = '(I4.4)') 
+      por_mean_daily_file = 'sfav2_por_' + $
+                            por_years_file + '_' + $
+                            'mean_' + $
                             STRMID(date_YYYYMMDDHH, 4, 4) + '.tif'
       por_mean_daily_grid = $
           READ_TIFF(por_mean_daily_file, GEOTIFF = geo_data_)
@@ -139,7 +197,9 @@
       if (geo_data_.modelPixelScaleTag[2] ne geo_data.modelPixelScaleTag[2]) $
           then STOP
 
-      por_daily_count_file = 'sfav2_por_num_nonzero_' + $
+      por_daily_count_file = 'sfav2_por_' + $
+                             por_years_file + '_' + $
+                             'num_nonzero_' + $
                              STRMID(date_YYYYMMDDHH, 4, 4) + '.tif'
       por_daily_count_grid = $
           READ_TIFF(por_daily_count_file, GEOTIFF = geo_data_)
@@ -214,11 +274,17 @@
   por_floor = ROUND(0.5 + num_days * 0.025)
   por_floor = ROUND(0.5 + num_days * 0.033333333) ; 1/2" + 1" / 30 days
 
-  ind = WHERE((por_mean_acc_grid ne ndv) and $
-              (por_mean_num_grid ne ndv) and $
-              (por_mean_acc_grid gt 0.0) and $
-              (por_mean_acc_grid lt por_floor), count)
-  if (count gt 0) then por_mean_acc_grid[ind] = 0.0
+  por_mean_below_floor_ind = $
+      WHERE((por_mean_acc_grid ne ndv) and $
+            (por_mean_num_grid ne ndv) and $
+            (por_mean_acc_grid gt 0.0) and $
+            (por_mean_acc_grid lt por_floor), por_mean_below_floor_count)
+;;   if (por_mean_below_floor_count gt 0) then begin
+;; ;     Store these for later.
+;;       por_mean_below_floor = por_mean_acc_grid[por_mean_below_floor_ind]
+;;       por_mean_acc_grid[por_mean_below_floor_ind] = 0.0
+;;   endif
+      
 
   grid_size = SIZE(por_mean_acc_grid)
   numCols = grid_size[1]
@@ -377,13 +443,19 @@
 
   USR_MSG, 'Created ' + pngFile
 
-
-
-
-
-
-
-
+; por_mean_acc_grid   real_time        what to do
+; -----------------   ---------        ----------
+;         0           0                ndv
+;         0           (0, threshold]   ndv?
+;         0           > threshold      1000
+;
+;   (0, threshold]    0                ndv
+;   (0, threshold]    (0, threshold]   ndv
+;   (0, threshold]    > threshold      calculate <- e.g. Texas 2021
+;
+;   > threshold       0                calculate
+;   > threshold       (0, threshold]   calculate
+;   > threshold       > threshold      calculate
 
 ; Calculate % of normal. Note that a "floor" is applied above to
 ; por_mean_acc_grid.
@@ -391,33 +463,37 @@
   p_norm = MAKE_ARRAY(numCols, numRows, VALUE = ndv)
 
 ; Normal is zero, current is greater than zero.
+; Maybe make this "normal is zero, current is above threshold."
   ind = WHERE((real_time ne ndv) and $
               (por_mean_acc_grid ne ndv) and $
               (por_mean_acc_grid eq 0.0) and $
-              (por_mean_acc_grid gt 0.0), count)
+              (real_time gt 0.0), count)
   if (count gt 0) then p_norm[ind] = 1000.0
 
 ; Normal is zero, current is zero.
   ind = WHERE((real_time ne ndv) and $
               (por_mean_acc_grid ne ndv) and $
               (por_mean_acc_grid eq 0.0) and $
-              (por_mean_acc_grid eq 0.0), count)
+              (real_time eq 0.0), count)
   if (count gt 0) then p_norm[ind] = ndv
 
 ; Regular % normal calculation.
   ind = WHERE((real_time ne ndv) and $
               (por_mean_acc_grid ne ndv) and $
-              (por_mean_acc_grid gt 0.0), count)
+              (por_mean_acc_grid gt 0.0) and $
+              (real_time gt 0.0), count)
   if (count gt 0) then $
       p_norm[ind] = real_time[ind] / por_mean_acc_grid[ind] * 100.0
 
-
-
-
-
-
-
-
+; Hide very low p_norm values when the por_mean_acc_grid is low. These are
+; areas with very low normals, so a period with little snow, while not usual,
+; is not worth all the excitement.
+  ind = WHERE((real_time ne ndv) and $
+              (por_mean_acc_grid ne ndv) and $
+              (por_mean_acc_grid lt por_floor) and $
+              (p_norm lt 25.0), count)
+  if (count gt 0) then $
+      p_norm[ind] = ndv
 
 ; These are taken from the "percent_swe" case in
 ; ~scarter/SNODAS_Development/SWEpy/nohrsc_colors.py
@@ -453,17 +529,14 @@
   edges = [0.0, 10.0, 20.0, 30.0, 45.0, 60.0, 75.0, 90.0, $
            110.0, 200.0, 300.0, 400.0, 500.0, 750.0, 1000.0, 10000.0]
 
-
   red = [191, 207, 246, 255, 230, 23, 0, 75, 191]
   grn = [143, 0, 113, 216, 230, 216, 113, 0, 96]
   blu = [96, 75, 0, 23, 255, 255, 246, 246, 191]
-
 
   red = [191, 207, 246, 255, 255,    210,    150, 23, 0, 75, 191]
   grn = [143, 0, 113, 216, 255,    210,    255, 216, 113, 0, 96]
   blu = [96, 75, 0, 23, 150,    240,    255, 255, 246, 246, 191]
   edges = [0.0, 10.0, 25.0, 50.0, 75.0, 90.0, 110.0, 150.0, 250.0, 500.0, 750.0, 1000.0]
-
 
   tickNames = ['0', '10', '25', '50', '75', '90', '110', '150', '250', '500', '750', '>750']
 
@@ -472,9 +545,9 @@
 
   title = 'National Snowfall Analysis: Percent of Normal for ' + $
           period_title + $
-          '!C!D' + 'Period of Record: ' + por_years + $
-          ' (percentage not shown for normals !Z(2264) ' + $
-          STRCRA(por_floor) + ' inches)'
+          '!C!D' + 'Period of Record: ' + por_years ;+ $
+          ;; ' (percentage not shown for normals !Z(2264) ' + $
+          ;; STRCRA(por_floor) + ' inches)'
 
   units = 'Percent of Normal'
 
@@ -485,6 +558,102 @@
       title, units, $
       pngFile, $
       TICK_NAMES = tickNames, $
+      /SHOW_HIGH, $
+      /NO_GRID, /NO_CONTINENTS, /NO_USA, $
+      /BLACK_ON_WHITE, $
+      MAP_SHAPE_PATH = shapePathList, $
+      NOAA_LOGO = resourcesDir + $
+                  '/noaa_logo_trans_408x408_32_col.png', $
+;      NOAA_LOGO = resourcesDir + '/noaa_logo_trans_400x400.png', $
+;      NOAA_LOGO = resourcesDir + '/noaa_logo_3d_384x384.png', $
+      /PROTOTYPE
+
+  USR_MSG, 'Created ' + pngFile
+
+
+; Calculate % difference from normal. Note that a "floor" is applied above to
+; por_mean_acc_grid.
+
+  p_diff = MAKE_ARRAY(numCols, numRows, VALUE = ndv)
+
+; Normal is zero, current is greater than zero.
+; Maybe make this "normal is zero, current is above threshold."
+  ;; ind = WHERE((real_time ne ndv) and $
+  ;;             (por_mean_acc_grid ne ndv) and $
+  ;;             (por_mean_acc_grid eq 0.0) and $
+  ;;             (real_time gt por_floor), count)
+  ;; if (count gt 0) then p_norm[ind] = 1000.0
+
+; Normal is zero, current is zero.
+  ;; ind = WHERE((real_time ne ndv) and $
+  ;;             (por_mean_acc_grid ne ndv) and $
+  ;;             (por_mean_acc_grid eq 0.0) and $
+  ;;             (real_time eq 0.0), count)
+  ;; if (count gt 0) then p_norm[ind] = ndv
+
+; Regular % normal calculation.
+  ;; ind = WHERE((real_time ne ndv) and $
+  ;;             (por_mean_acc_grid ne ndv) and $
+  ;;             (por_mean_acc_grid gt 0.0), count)
+  ;; if (count gt 0) then $
+  ;;     p_norm[ind] = real_time[ind] / por_mean_acc_grid[ind] * 100.0
+
+
+; Regular % difference calculation.
+  ind = WHERE((real_time ne ndv) and $
+              (por_mean_acc_grid ne ndv) and $
+              (por_mean_acc_grid gt 0.0), count)
+  if (count gt 0) then $
+      p_diff[ind] = (real_time[ind] - por_mean_acc_grid[ind]) / $
+                    por_mean_acc_grid[ind] * 100.0
+
+; Hide numeric instability when observed snowfall and normal snowfall are both
+; small.
+  ind = WHERE((real_time ne ndv) and $
+              (por_mean_acc_grid ne ndv) and $
+              (por_mean_acc_grid lt 1.0) and $
+              (real_time lt 1.0), count)
+  if (count gt 0) then $
+      p_diff[ind] = ndv
+
+; Hide very low p_diff values when the por_mean_acc_grid is low. These are
+; areas with very low normals, so a period with no snow, which not usual, is
+; not worth all the excitement.
+  ind = WHERE((real_time ne ndv) and $
+              (por_mean_acc_grid ne ndv) and $
+              (por_mean_acc_grid lt por_floor) and $
+              (p_diff lt -75.0), count)
+  if (count gt 0) then $
+      p_diff[ind] = ndv
+  
+  pngFile = 'sfav2_CONUS_percent_diff_from_normal_' + $
+            period_file + '.png'
+
+  title = 'National Snowfall Analysis: % Difference from Normal for ' + $
+          period_title + $
+          '!C!D' + 'Period of Record: ' + por_years; + $
+          ;; ' (percentage not shown for normals !Z(2264) ' + $
+          ;; STRCRA(por_floor) + ' inches)'
+
+  units = '% Difference from Normal'
+
+  red = [191, 207, 246, 255, 255,    210,    150, 23, 0, 75, 191]
+  grn = [143, 0, 113, 216, 255,    210,    255, 216, 113, 0, 96]
+  blu = [96, 75, 0, 23, 150,    240,    255, 255, 246, 246, 191]
+
+  edges = [-200.0, -150.0, -75.0, -50.0, -25.0, -10.0, $
+           10.0, 25.0, 50.0, 75.0, 150.0, 200.0]
+  ticknames = ['-200', '-150', '-75', '-50', '-25', '-10', $
+               '10', '25', '50', '75', '150', '200']
+
+  MAKE_LON_LAT_MAP_PNG_SFAV2,$ 
+      REVERSE(p_diff, 2), ndv, edges, red, grn, blu, $
+      lonRes, minLon, maxLon, $
+      latRes, minLat, maxLat, $
+      title, units, $
+      pngFile, $
+      TICK_NAMES = tickNames, $
+      /SHOW_LOW, $
       /SHOW_HIGH, $
       /NO_GRID, /NO_CONTINENTS, /NO_USA, $
       /BLACK_ON_WHITE, $
