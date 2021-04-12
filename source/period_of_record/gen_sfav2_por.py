@@ -1,4 +1,4 @@
-#!/usr/bin/python3.6
+#!/usr/bin/python3
 
 import datetime as dt
 import calendar
@@ -460,7 +460,8 @@ def geo_grid_map(crs, figure_x_size, figure_y_size, num, bbox,
     # For GeoAxes you cannot use the usual set_facecolor method as you
     # would in a regular axis for missing data.
     # https://github.com/SciTools/cartopy/issues/880
-    ax.background_patch.set_facecolor('#e4e4e4ff')
+    # ax.background_patch.set_facecolor('#e4e4e4ff')
+    ax.set_facecolor('#e4e4e4ff')
 
     if use_basemap:
         # Temporarily use basemap draw state, national, and continental
@@ -468,7 +469,7 @@ def geo_grid_map(crs, figure_x_size, figure_y_size, num, bbox,
         # bounding box as a basemap entity that coexists with the GeoAxes
         # defined above. This option is necessary on CentOS 7 systems, where
         # cartopy 0.13 is unable to draw continent, state, and national
-        # boundaries.
+        # boundaries. 
         # srs = osr.SpatialReference()
         # srs.ImportFromWkt(dataset.GetProjection())
         # print(srs)
@@ -691,7 +692,7 @@ def geo_grid_map(crs, figure_x_size, figure_y_size, num, bbox,
     
     # Draw the grid.
     #ax.set_facecolor('black')
-    ax.set_facecolor('black')
+    #ax.set_facecolor('black')
 
     # cf = ax.contourf(x_ctr_data, y_ctr_data,
     #                  np.flipud(grid_masked),
@@ -983,7 +984,7 @@ def parse_args():
     Parse command line arguments.
     """
 
-    help_message = 'Generate a climatology of SNODAS snowpack states.'
+    help_message = 'Generate a climatology of the National Snowfall Analysis.'
 
     parser = argparse.ArgumentParser(description=help_message)
 
@@ -995,10 +996,6 @@ def parse_args():
                         type=int,
                         metavar='finish water year',
                         nargs='?')
-    parser.add_argument('-d', '--depth',
-                        action='store_true',
-                        help='Generate snow depth climatology ' +
-                             '(SWE is the default).')
     parser.add_argument('-p', '--plot_results',
                         action='store_true',
                         help='Display plot of climatology for each day.')
@@ -1040,7 +1037,7 @@ def main():
     repair_ds = None
     ndv_out = None
 
-    # Generate SNODAS climatology for a hypothetical leap year.
+    # Generate xxSNODASxx climatology for a hypothetical leap year.
     for day_of_water_year in range(1, 367):
         # Generate climatology for current day_of_water_year.
         print('Day of water year {}.'.format(day_of_water_year))
@@ -1346,8 +1343,12 @@ def main():
         # Create a string for the year range.
         if day_of_water_year < 93:
             year_range = '{}-{}'.format(opt.start_year-1, opt.finish_year-1)
+            year_range_file = '{}_to_{}'. \
+                format(opt.start_year-1, opt.finish_year-1)
         else:
             year_range = '{}-{}'.format(opt.start_year, opt.finish_year)
+            year_range_file = '{}_to_{}'. \
+                format(opt.start_year, opt.finish_year)
 
         # --------------------------------------------------------------- 
         # Write the mean grid to the generic GDAL dataset lon_lat_ds.
@@ -1366,6 +1367,7 @@ def main():
                year_range
         lon_lat_ds.GetRasterBand(1).SetDescription(desc)
         tiff_name = 'sfav2_por_' + \
+                    year_range_file + \
                     'mean_{}.tif'.format(date_mmdd)
         print('Creating GeoTIFF "{}".'.format(tiff_name))
         tiff_driver = gdal.GetDriverByName('GTiff')
@@ -1413,7 +1415,7 @@ def main():
                                    snowfall_color_ramp,
                                    'inches',
                                    cbar_geom,
-                                   use_basemap=True)
+                                   use_basemap=False)
             mplplt.show()
 
         # --------------------------------------------------------------- 
@@ -1430,6 +1432,7 @@ def main():
         # Write the maximum to a GeoTIFF. See
         # https://gdal.org/drivers/raster/gtiff.html
         tiff_name = 'sfav2_por_' + \
+                    year_range_file + \
                     'max_{}.tif'.format(date_mmdd)
         print('Creating GeoTIFF "{}".'.format(tiff_name))
         tiff_driver.CreateCopy(tiff_name,
@@ -1460,7 +1463,7 @@ def main():
                                    snowfall_color_ramp,
                                    'inches',
                                    cbar_geom,
-                                   use_basemap=True)
+                                   use_basemap=False)
             mplplt.show()
 
 
@@ -1476,7 +1479,9 @@ def main():
                year_range
         print(desc)
         lon_lat_ds.GetRasterBand(1).SetDescription(desc)
-        tiff_name = 'sfav2_por_num_nonzero_{}.tif'.format(date_mmdd)
+        tiff_name = 'sfav2_por_' + \
+                    year_range_file + \
+                    'num_nonzero_{}.tif'.format(date_mmdd)
         print('Creating GeoTIFF "{}".'.format(tiff_name))
         tiff_driver = gdal.GetDriverByName('GTiff')
         tiff_driver.CreateCopy(tiff_name,
@@ -1507,7 +1512,7 @@ def main():
                                    num_years_color_ramp,
                                    'Years',
                                    cbar_geom,
-                                   use_basemap=True)
+                                   use_basemap=False)
 
             mplplt.show()
 
