@@ -446,7 +446,7 @@
 ; por_mean_acc_grid   real_time        what to do
 ; -----------------   ---------        ----------
 ;         0           0                ndv
-;         0           (0, threshold]   ndv?
+;         0           (0, threshold]   ndv? no, 1000
 ;         0           > threshold      1000
 ;
 ;   (0, threshold]    0                ndv
